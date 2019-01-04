@@ -2,6 +2,14 @@ package com.kun.learning.bean.util.config;
 
 /**
  * Created by jrjiakun on 2019/1/4
+ *
+ * 按照类型转换时候需要
+ *
+ * srcClass 表示源类型
+ * desClass 表示目标类型
+ *
+ * 仅仅在属性copy的时候，源类型和目标类型定义一直的时候，才会进行属性copy
+ *
  */
 public class BeanTypeConfigHolder {
     Class srcClass;
