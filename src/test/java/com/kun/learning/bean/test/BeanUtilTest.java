@@ -3,12 +3,15 @@ package com.kun.learning.bean.test;
 import com.kun.learning.bean.test.bean.A;
 import com.kun.learning.bean.test.bean.C;
 import com.kun.learning.bean.util.BeanUtil;
+import com.kun.learning.bean.util.config.BeanTypeConfigHolder;
 import com.kun.learning.bean.util.convert.BeanCopyConvert;
 import com.kun.learning.bean.util.defaultConvetor.BigDecimal2StringConvetor;
 import com.kun.learning.bean.util.defaultConvetor.Date2StringConvetor;
 import com.kun.learning.bean.util.em.BeanCopyConfigEm;
 import org.junit.Test;
 
+import java.math.BigDecimal;
+import java.util.Date;
 import java.util.HashMap;
 
 
@@ -17,9 +20,9 @@ import java.util.HashMap;
  */
 public class BeanUtilTest extends TestBase{
 
-    BeanUtil beanUtil = new BeanUtil(new HashMap<BeanCopyConfigEm, BeanCopyConvert>(){{
-        put(BeanCopyConfigEm.BigDecimalConfig,new BigDecimal2StringConvetor());
-        put(BeanCopyConfigEm.DateConfig,new Date2StringConvetor());
+    BeanUtil beanUtil = new BeanUtil(new HashMap<BeanTypeConfigHolder, BeanCopyConvert>(){{
+        put(new BeanTypeConfigHolder(BigDecimal.class,String.class),new BigDecimal2StringConvetor());
+        put(new BeanTypeConfigHolder(Date.class,String.class),new Date2StringConvetor());
     }});
 
     @Test

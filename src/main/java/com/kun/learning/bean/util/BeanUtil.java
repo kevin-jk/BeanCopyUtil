@@ -3,6 +3,7 @@ package com.kun.learning.bean.util;
 
 
 import com.kun.learning.bean.util.config.BeanTypeConfigHolder;
+import com.kun.learning.bean.util.config.Features;
 import com.kun.learning.bean.util.convert.BeanCopyConvert;
 import com.kun.learning.bean.util.em.BeanCopyConfigEm;
 import com.kun.learning.bean.util.exception.BeanCopyException;
@@ -112,6 +113,15 @@ public class BeanUtil {
                 }
             }
         }
+    }
+
+    public void copyProperties(Object src, Object des, Features...features){
+        if(null!=features){
+            for(Features feature : features){
+                typeConfigMap.put(feature.getHolder(feature),feature.getConvert(feature));
+            }
+        }
+        copyProperties(src,des);
     }
     // 需要设置值的feild
     private boolean isAccessMethod(Method method) {
