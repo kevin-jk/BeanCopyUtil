@@ -6,6 +6,7 @@ import com.kun.learning.bean.util.config.CopyConfig;
 import com.kun.learning.bean.util.config.Features;
 import com.kun.learning.bean.util.convert.BeanCopyConvert;
 import com.kun.learning.bean.util.exception.BeanCopyException;
+import com.kun.learning.bean.util.reflect.ReflectUtils;
 import org.slf4j.*;
 
 import java.lang.reflect.*;
@@ -40,39 +41,38 @@ public class BeanUtil {
     //针对类型进行自定义转换
     private static Map<BeanTypeConfigHolder, BeanCopyConvert> typeConfigMap = new HashMap<BeanTypeConfigHolder, BeanCopyConvert>();
 
-    private Map<String, BeanCopyConvert> fieldConfigMap = new HashMap<String, BeanCopyConvert>();
+    private static Map<String, BeanCopyConvert> fieldConfigMap = new HashMap<String, BeanCopyConvert>();
 
-    private List<String> excludeFieldsList = new ArrayList<String>();
+    private static List<String> excludeFieldsList = new ArrayList<String>();
 
-
-    public void copyProperties(Object src, Object des) {
+    public static void copyProperties(Object src, Object des) {
         Class srcClazz = src.getClass();
         Class desClazz = des.getClass();
-        List<Field> desFields = getWholeDeclaredFields(desClazz);
+        List<Field> desFields = ReflectUtils.getWholeDeclaredFields(desClazz);
         for (Field desField : desFields) {
             // 如果需要排除某些字段，则直接进行下一个字段属性的copy
             if (excludeFieldsList.contains(desField.getName())) {
                 continue;
             }
             // 获取目标对象对应字段的set方法
-            Method desWriteMethod = getWriteMethod(desField, desClazz);
+            Method desWriteMethod = ReflectUtils.getWriteMethod(desField, desClazz);
             //目标对象对应字段无set方法，或者set方法不是public，或者是静态方法都不进行copy
-            if (isAccessMethod(desWriteMethod)) {
+            if (ReflectUtils.isAccessMethod(desWriteMethod)) {
                 // 获取源对象对应的字段
                 Field srcField = null;
                 try {
-                    srcField = getWholeDeclaredField(srcClazz, desField.getName());
+                    srcField = ReflectUtils.getWholeDeclaredField(srcClazz, desField.getName());
                 } catch (Exception e) {
                     logger.debug("源对象无{}字段", desField.getName());
                     continue;
                 }
                 //获取源目标的对应的读方法
-                Method srcReadMethod = getReadMethod(srcField, srcClazz);
+                Method srcReadMethod = ReflectUtils.getReadMethod(srcField, srcClazz);
                 // 检查是否为是public方法
-                if (isAccessMethod(srcReadMethod)) {
+                if (ReflectUtils.isAccessMethod(srcReadMethod)) {
                     // 如果是map，list之类的，如何解决？
                     // 如果是泛型类型的field, 需要判断是否一致，如果一致则直接copy，否则不做操作
-                    if (isSameParameterizedType(srcField, desField)) {
+                    if (ReflectUtils.isSameParameterizedType(srcField, desField)) {
                         //获取源目标对应的字段值
                         Object srcValue = null;
                         try {
@@ -115,7 +115,7 @@ public class BeanUtil {
         }
     }
 
-    public void copyProperties(Object src, Object des, Features... features) {
+    public static void copyProperties(Object src, Object des, Features... features) {
         if (null != features) {
             for (Features feature : features) {
                 typeConfigMap.put(feature.getHolder(feature), feature.getConvert(feature));
@@ -124,117 +124,44 @@ public class BeanUtil {
         copyProperties(src, des);
     }
 
-    public void copyProperties(Object src, Object des,CopyConfig...copyConfigs){
-        if(null!=copyConfigs){
-            for(CopyConfig copyConfig : copyConfigs){
-                if(copyConfig.getKey() instanceof BeanTypeConfigHolder && copyConfig.getValue() instanceof BeanCopyConvert){
-                    typeConfigMap.put((BeanTypeConfigHolder)copyConfig.getKey(),copyConfig.getValue());
-                }else
-                if(copyConfig.getKey() instanceof String && copyConfig.getValue() instanceof BeanCopyConvert){
-                    fieldConfigMap.put((String)copyConfig.getKey(),copyConfig.getValue());
-                }else {
+    public static void copyProperties(Object src, Object des, CopyConfig... copyConfigs) {
+        if (null != copyConfigs) {
+            for (CopyConfig copyConfig : copyConfigs) {
+                if (copyConfig.getKey() instanceof BeanTypeConfigHolder && copyConfig.getValue() instanceof BeanCopyConvert) {
+                    typeConfigMap.put((BeanTypeConfigHolder) copyConfig.getKey(), copyConfig.getValue());
+                } else if (copyConfig.getKey() instanceof String && copyConfig.getValue() instanceof BeanCopyConvert) {
+                    fieldConfigMap.put((String) copyConfig.getKey(), copyConfig.getValue());
+                } else {
                     throw new BeanCopyException("未知的配置类型");
                 }
             }
-            copyProperties(src, des);
         }
-    }
-    // 需要设置值的field
-    private boolean isAccessMethod(Method method) {
-        return method != null && Modifier.isPublic(method.getModifiers()) && !Modifier.isStatic(method.getModifiers());
+        copyProperties(src, des);
     }
 
-
-    private Method getWriteMethod(Field field, Class clazz) {
-        if (null != field) {
-            String fieldName = field.getName();
-            String methodSuf = fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
-            String writeMethodStr = "set" + methodSuf;
-            Method writeMethod = null;
-            try {
-                writeMethod = clazz.getMethod(writeMethodStr, field.getType());
-            } catch (Exception e) {
-                logger.info("clazz:{}中字段{}无对应的 set- 写方法", clazz.getName(), field.getName());
-            }
-            return writeMethod;
-        }
-        return null;
-    }
-
-
-    private Method getReadMethod(Field field, Class clazz) {
-        Method readMethod = null;
-        if (null != field) {
-            String fieldName = field.getName();
-            String methodSuf = fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
-            String readMethodStr = null;
-            // boolean类型的，查看是否有is-方法
-            if (boolean.class.equals(field.getType())) {
-                readMethodStr = "is" + methodSuf;
-                try {
-                    readMethod = clazz.getMethod(readMethodStr);
-                } catch (Exception e) {
-                    logger.info("clazz:{}中字段{}无对应的 is- 读方法", clazz.getName(), field.getName());
+    public static void copyProperties(Object src, Object des, CopyConfig[] copyConfigs, String[] ignoreFields) {
+        if (null != copyConfigs) {
+            for (CopyConfig copyConfig : copyConfigs) {
+                if (copyConfig.getKey() instanceof BeanTypeConfigHolder && copyConfig.getValue() instanceof BeanCopyConvert) {
+                    typeConfigMap.put((BeanTypeConfigHolder) copyConfig.getKey(), copyConfig.getValue());
+                } else if (copyConfig.getKey() instanceof String && copyConfig.getValue() instanceof BeanCopyConvert) {
+                    fieldConfigMap.put((String) copyConfig.getKey(), copyConfig.getValue());
+                } else {
+                    throw new BeanCopyException("未知的配置类型");
                 }
             }
-            //get方法
-            if (null == readMethod) {
-                readMethodStr = "get" + methodSuf;
-                try {
-                    readMethod = clazz.getMethod(readMethodStr);
-                } catch (Exception e) {
-                    logger.info("clazz:{}中字段{}无对应的 get- 读方法", clazz.getName(), field.getName());
-                }
+            if (null != ignoreFields) {
+                excludeFieldsList.addAll(Arrays.asList(ignoreFields));
             }
         }
-        return readMethod;
+        copyProperties(src, des);
     }
 
-    private boolean isSameParameterizedType(Field srcField, Field desField) {
-        Type srcType = srcField.getGenericType();
-        Type desType = desField.getGenericType();
-        if (desType != null && desType instanceof ParameterizedType) {
-            //判断原始类型是否一致
-            if (srcType == null || !(srcType instanceof ParameterizedType)) {
-                return false;
-            }
-            ParameterizedType srcParamType = ((ParameterizedType) srcType);
-            ParameterizedType decParamType = ((ParameterizedType) desType);
-            if (srcParamType.equals(decParamType)) {
-//                Type[] srcActTypes =   srcParamType.getActualTypeArguments();
-//                Type[] decActTypes =   decParamType.getActualTypeArguments();
-//                for(int i=0;i<srcActTypes.length;i++){
-//                   if(!srcActTypes[i].equals(decActTypes[i])){
-//                       return false;
-//                   }
-//                }
-                return true;
-            } else {
-                return false;
-            }
+    public static void copyProperties(Object src, Object des, String... ignoreFields) {
+        if (null != ignoreFields) {
+            excludeFieldsList.addAll(Arrays.asList(ignoreFields));
         }
-        return true;
+        copyProperties(src, des);
     }
 
-    private List<Field> getWholeDeclaredFields(Class clazz) {
-        List<Field> fields = new ArrayList<Field>();
-        while (clazz != Object.class) {
-            //仅仅返回当前类（不包括父类）中的字段
-            fields.addAll(Arrays.asList(clazz.getDeclaredFields()));
-            clazz = clazz.getSuperclass();
-        }
-        return fields;
-    }
-
-    private Field getWholeDeclaredField(Class clazz, String fieldName) throws Exception {
-        Field field = null;
-        try {
-            field = clazz.getDeclaredField(fieldName);
-        } catch (Exception e) {
-            if (null == field && clazz != Object.class) {
-                field = getWholeDeclaredField(clazz.getSuperclass(), fieldName);
-            }
-        }
-        return field;
-    }
 }

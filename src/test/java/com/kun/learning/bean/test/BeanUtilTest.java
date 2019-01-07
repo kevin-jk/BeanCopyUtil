@@ -4,10 +4,11 @@ import com.kun.learning.bean.test.bean.A;
 import com.kun.learning.bean.test.bean.C;
 import com.kun.learning.bean.util.BeanUtil;
 import com.kun.learning.bean.util.config.BeanTypeConfigHolder;
+import com.kun.learning.bean.util.config.Features;
 import com.kun.learning.bean.util.convert.BeanCopyConvert;
 import com.kun.learning.bean.util.defaultConvetor.BigDecimal2StringConvetor;
 import com.kun.learning.bean.util.defaultConvetor.Date2StringConvetor;
-import com.kun.learning.bean.util.em.BeanCopyConfigEm;
+import com.kun.learning.bean.util.exception.BeanCopyException;
 import org.junit.Test;
 
 import java.math.BigDecimal;
@@ -20,10 +21,6 @@ import java.util.HashMap;
  */
 public class BeanUtilTest extends TestBase{
 
-    BeanUtil beanUtil = new BeanUtil(new HashMap<BeanTypeConfigHolder, BeanCopyConvert>(){{
-        put(new BeanTypeConfigHolder(BigDecimal.class,String.class),new BigDecimal2StringConvetor());
-        put(new BeanTypeConfigHolder(Date.class,String.class),new Date2StringConvetor());
-    }});
 
     @Test
     public void test_copy(){
@@ -31,7 +28,17 @@ public class BeanUtilTest extends TestBase{
         a.setA("a");
         a.setAs("as");
         C c = new C();
-        beanUtil.copyProperties(a,c);
+        BeanUtil.copyProperties(a,c, Features.BigDecimal2String);
         System.out.println(c);
+        BeanUtil.copyProperties(a,c, Features.Date2String);
+    }
+
+    @Test(expected = BeanCopyException.class)
+    public void test_NotSameTypeField(){
+        A a = new A();
+        a.setA("a");
+        a.setAs("as");
+        C c = new C();
+        BeanUtil.copyProperties(a,c);
     }
 }
