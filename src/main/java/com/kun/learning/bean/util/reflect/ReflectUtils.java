@@ -18,7 +18,6 @@ public class ReflectUtils {
         return method != null && Modifier.isPublic(method.getModifiers()) && !Modifier.isStatic(method.getModifiers());
     }
 
-
     public static Method getWriteMethod(Field field, Class clazz) {
         if (null != field) {
             String fieldName = field.getName();

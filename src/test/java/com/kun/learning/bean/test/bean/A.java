@@ -16,5 +16,4 @@ public class A extends A_S{
     private boolean c;
     private int d;
     private BigDecimal bigNum;
-
 }

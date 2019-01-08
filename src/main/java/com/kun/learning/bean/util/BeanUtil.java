@@ -28,24 +28,21 @@ import java.util.*;
  * <p>
  * <p>
  * //todo
- * 1. 默认类型转换器
- * 2. 针对某个具体字段转换器
- * 3. 忽略属性拦截器
- * 4. 泛型的完整属性copy？
- * 5. class属性的缓存，弱引用
+ * class属性的缓存，弱引用
  * <p>
  * version 1.0
  */
 public class BeanUtil {
+
     private final static Logger logger = LoggerFactory.getLogger(BeanUtil.class);
-    //针对类型进行自定义转换
-    private static Map<BeanTypeConfigHolder, BeanCopyConvert> typeConfigMap = new HashMap<BeanTypeConfigHolder, BeanCopyConvert>();
 
-    private static Map<String, BeanCopyConvert> fieldConfigMap = new HashMap<String, BeanCopyConvert>();
-
-    private static List<String> excludeFieldsList = new ArrayList<String>();
-
-    public static void copyProperties(Object src, Object des) {
+    private static void copyProperties0(Object src, Object des, Map<BeanTypeConfigHolder, BeanCopyConvert> typeConfigMap, Map<String, BeanCopyConvert> fieldConfigMap, List<String> excludeFieldsList) {
+        if(null==src){
+            throw new BeanCopyException("IllegalArgument, the src is null");
+        }
+        if(null==des){
+            throw new BeanCopyException("IllegalArgument, the des is null");
+        }
         Class srcClazz = src.getClass();
         Class desClazz = des.getClass();
         List<Field> desFields = ReflectUtils.getWholeDeclaredFields(desClazz);
@@ -115,53 +112,59 @@ public class BeanUtil {
         }
     }
 
-    public static void copyProperties(Object src, Object des, Features... features) {
-        if (null != features) {
-            for (Features feature : features) {
-                typeConfigMap.put(feature.getHolder(feature), feature.getConvert(feature));
-            }
-        }
-        copyProperties(src, des);
+    public static void copyProperties(Object src, Object des){
+        copyProperties(src,des,null,null);
     }
 
-    public static void copyProperties(Object src, Object des, CopyConfig... copyConfigs) {
-        if (null != copyConfigs) {
-            for (CopyConfig copyConfig : copyConfigs) {
-                if (copyConfig.getKey() instanceof BeanTypeConfigHolder && copyConfig.getValue() instanceof BeanCopyConvert) {
-                    typeConfigMap.put((BeanTypeConfigHolder) copyConfig.getKey(), copyConfig.getValue());
-                } else if (copyConfig.getKey() instanceof String && copyConfig.getValue() instanceof BeanCopyConvert) {
-                    fieldConfigMap.put((String) copyConfig.getKey(), copyConfig.getValue());
-                } else {
-                    throw new BeanCopyException("未知的配置类型");
+    public static void copyProperties(Object src, Object des, Features... features) {
+        CopyConfig[] copyConfigs = null;
+        if (null != features) {
+            copyConfigs = new CopyConfig[features.length];
+            for (int i=0;i<features.length;i++) {
+                if(features[i]!=null){
+                    CopyConfig copyConfig = new CopyConfig();
+                    copyConfig.setKey(Features.getHolder(features[i]));
+                    copyConfig.setValue( Features.getConvert(features[i]));
+                    copyConfigs[i]=copyConfig;
                 }
             }
         }
-        copyProperties(src, des);
+        copyProperties(src, des,copyConfigs);
+    }
+
+    public static void copyProperties(Object src, Object des, CopyConfig...copyConfigs) {
+        copyProperties(src, des,copyConfigs,null);
     }
 
     public static void copyProperties(Object src, Object des, CopyConfig[] copyConfigs, String[] ignoreFields) {
+        Map<BeanTypeConfigHolder, BeanCopyConvert> typeConfigMap = new HashMap<BeanTypeConfigHolder, BeanCopyConvert>();
+        Map<String, BeanCopyConvert> fieldConfigMap = new HashMap<String, BeanCopyConvert>();
+        List<String> excludeFieldsList = new ArrayList<String>();
         if (null != copyConfigs) {
             for (CopyConfig copyConfig : copyConfigs) {
-                if (copyConfig.getKey() instanceof BeanTypeConfigHolder && copyConfig.getValue() instanceof BeanCopyConvert) {
-                    typeConfigMap.put((BeanTypeConfigHolder) copyConfig.getKey(), copyConfig.getValue());
-                } else if (copyConfig.getKey() instanceof String && copyConfig.getValue() instanceof BeanCopyConvert) {
-                    fieldConfigMap.put((String) copyConfig.getKey(), copyConfig.getValue());
-                } else {
-                    throw new BeanCopyException("未知的配置类型");
+                if(null!=copyConfig){
+                    if (copyConfig.getKey() instanceof BeanTypeConfigHolder && copyConfig.getValue() instanceof BeanCopyConvert) {
+                        typeConfigMap.put((BeanTypeConfigHolder) copyConfig.getKey(), copyConfig.getValue());
+                    } else if (copyConfig.getKey() instanceof String && copyConfig.getValue() instanceof BeanCopyConvert) {
+                        fieldConfigMap.put((String) copyConfig.getKey(), copyConfig.getValue());
+                    } else {
+                        throw new BeanCopyException("Unknown typeConfig, please check!");
+                    }
                 }
             }
-            if (null != ignoreFields) {
-                excludeFieldsList.addAll(Arrays.asList(ignoreFields));
+        }
+        if (null != ignoreFields) {
+            for(String ignoreField:ignoreFields){
+                if(null!=ignoreField&&!"".equals(ignoreField)){
+                    excludeFieldsList.add(ignoreField);
+                }
             }
         }
-        copyProperties(src, des);
+        copyProperties0(src, des,typeConfigMap,fieldConfigMap,excludeFieldsList);
     }
 
     public static void copyProperties(Object src, Object des, String... ignoreFields) {
-        if (null != ignoreFields) {
-            excludeFieldsList.addAll(Arrays.asList(ignoreFields));
-        }
-        copyProperties(src, des);
+        copyProperties(src, des,null,ignoreFields);
     }
 
 }

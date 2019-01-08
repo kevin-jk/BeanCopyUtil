@@ -38,11 +38,11 @@ public enum Features {
     }};
 
 
-    public BeanTypeConfigHolder getHolder(Features features) {
+    public static BeanTypeConfigHolder getHolder(Features features) {
         return featureConfigHolder.get(features);
     }
 
-    public BeanCopyConvert getConvert(Features features) {
+    public static BeanCopyConvert getConvert(Features features) {
         return featureConvert.get(features);
     }
 }
