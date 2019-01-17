@@ -12,6 +12,7 @@ import java.util.Date;
  */
 public class Date2StringConvetor implements BeanCopyConvert<String,Date> {
     private static SimpleDateFormat default_sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    @Override
     public String convert(Date src) {
         return null==src?null:default_sdf.format(src);
     }

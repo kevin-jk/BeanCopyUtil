@@ -82,4 +82,20 @@ public class BeanUtilTest extends TestBase{
         C c = new C();
         BeanUtil.copyProperties(a,c,(String)null);
     }
+
+
+    @Test
+    public void test_bigDecimal(){
+        BigDecimal bigDecimal = new BigDecimal("0");
+        BigDecimal bigDecimal1 = new BigDecimal("0.0");
+        BigDecimal bigDecimal2 = new BigDecimal("0.00");
+        BigDecimal bigDecimal4 = new BigDecimal("9.00244000");
+        System.out.println( bigDecimal1.compareTo(bigDecimal2));
+
+        BigDecimal2StringConvetor bigDecimal2StringConvetor = new BigDecimal2StringConvetor();
+        System.out.println(bigDecimal2StringConvetor.convert(bigDecimal));
+        System.out.println(bigDecimal2StringConvetor.convert(bigDecimal1));
+        System.out.println(bigDecimal2StringConvetor.convert(bigDecimal2));
+        System.out.println(bigDecimal2StringConvetor.convert(bigDecimal4));
+    }
 }
